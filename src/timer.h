@@ -10,6 +10,7 @@ public:
     explicit Timer();
     QString name;
     QTimer timer;
+    bool done = false;
     
 public Q_SLOTS:
     void timerFinished();

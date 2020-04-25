@@ -13,7 +13,8 @@ target_link_libraries(timerrunner
 set(CMAKE_BINARY_DIR "../bin")
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
-install(FILES timerrunner.desktop DESTINATION ~/.local/share/kservices5/)
+install(FILES timerrunner.desktop DESTINATION ${CMAKE_INSTALL_PREFIX}/share/kservices5/)
+install(FILES krunner_timer.notifyrc DESTINATION ${KDE_INSTALL_KNOTIFY5RCDIR})
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     install(TARGETS timerrunner DESTINATION ~/.config/autostart-scripts/)
 endif()

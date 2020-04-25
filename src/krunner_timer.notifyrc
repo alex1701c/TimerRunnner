@@ -1,0 +1,9 @@
+[Global]
+IconName=planetkde
+Comment=Timer utility for KRunner
+Name=KRunner Timer
+
+[Event/done]
+Name=Done
+Comment=Normal timer has finished
+Action=Popup

@@ -10,6 +10,10 @@ Timer::Timer()
 
 void Timer::timerFinished()
 {
-    KNotification::event(KNotification::Notification, "Timer finished!", name);
+    const static QString defaultTitle = QStringLiteral("Timer finished!");
+    const static QString defaultEvent = QStringLiteral("done");
+    KNotification::event(defaultEvent, defaultTitle, name, QString(), nullptr,
+                         KNotification::CloseOnTimeout, "krunner_timer");
     timer.stop();
+    done = true;
 }

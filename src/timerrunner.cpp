@@ -36,6 +36,10 @@ RemoteMatches TimerRunner::Match(const QString &searchTerm)
     // Overview
     if (searchTerm == triggerWord) {
         for (const auto *timer: qAsConst(timers)) {
+            // TODO Remove from list or sth. else
+            if (timer->done) {
+                continue;
+            }
             RemoteMatch m;
             m.id = timer->name;
             const QString displayTime = Utilities::msecToTime(timer->timer.remainingTime());
