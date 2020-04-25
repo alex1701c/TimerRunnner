@@ -10,7 +10,7 @@ set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH} ${ECM_KDE_MODULE_DIR} ${CMAKE_MODULE_PA
 
 # Find the required Libaries
 find_package(Qt5 ${QT_MIN_VERSION} REQUIRED CONFIG COMPONENTS DBus)
-find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS Runner Notifications)
+find_package(KF5 ${KF5_MIN_VERSION} REQUIRED COMPONENTS Runner Notifications CoreAddons)
 include(KDEInstallDirs)
 include(KDECMakeSettings)
 include(KDECompilerSettings NO_POLICY_SCOPE)

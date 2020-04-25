@@ -5,14 +5,21 @@
 #include "timer.h"
 #include "dbus_utils.h"
 
-class TimerRunner : public QObject {
+class TimerRunner: public QObject
+{
 Q_OBJECT
 
 public:
     explicit TimerRunner();
     QLatin1String triggerWord = QLatin1String("timer");
+    QRegularExpression timerQueryRegex;
+    QString iconName = QStringLiteral("org.kde.plasma.timer");
     QList<Timer *> timers;
-    
+
+    // Some default values
+    const int defaultValue = 5;
+    const QString  defaultUnit = QStringLiteral("min");
+
 public Q_SLOTS:
     RemoteActions Actions();
     RemoteMatches Match(const QString &searchTerm);
