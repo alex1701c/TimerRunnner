@@ -1,6 +1,6 @@
 //  Licensed under the GNU LESSER GENERAL PUBLIC LICENSE Version 2.1. See License in the project root for license information.
 #include "timerrunner.h"
-#include "utilities.h"
+#include "core/utilities.h"
 
 #include <QDBusConnection>
 #include <QDBusArgument>
@@ -99,12 +99,21 @@ void TimerRunner::Run(const QString &id, const QString &actionId)
     const QStringList args = KShell::splitArgs(id);
     if (args.isEmpty()) {
         qWarning() << "List of arguments was empty";
-        return; // Should not happen
+        return;
     }
     if (args.first() == QLatin1String("new")) {
         auto *t = new Timer();
         t->timer.start(args.at(1).toInt());
         t->name = args.at(2);
+        connect(t, &Timer::isDone, this, &TimerRunner::removeTimer);
         timers.append(t);
+    }
+}
+void TimerRunner::removeTimer()
+{
+    auto *timer = dynamic_cast<Timer *>(this->sender());
+    if (timer) {
+        timers.removeOne(timer);
+        delete timer;
     }
 }

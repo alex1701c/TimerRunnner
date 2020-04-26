@@ -2,7 +2,7 @@
 #pragma once
 
 #include <QtCore>
-#include "timer.h"
+#include "core/timer.h"
 #include "dbus_utils.h"
 
 class TimerRunner: public QObject
@@ -24,5 +24,6 @@ public Q_SLOTS:
     RemoteActions Actions();
     RemoteMatches Match(const QString &searchTerm);
     void Run(const QString &id, const QString &actionId);
+    void removeTimer();
 };
 
