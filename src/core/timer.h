@@ -15,6 +15,7 @@ public:
 public Q_SLOTS:
     void timerFinished();
     void remindLater();
+    void cancel();
     void markAsDone();
 
 Q_SIGNALS:

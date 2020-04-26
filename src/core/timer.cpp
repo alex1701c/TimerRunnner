@@ -2,6 +2,7 @@
 #include <QAction>
 
 #include "timer.h"
+#include "utilities.h"
 
 Timer::Timer()
     : QObject()
@@ -35,3 +36,15 @@ void Timer::markAsDone()
     done = true;
     Q_EMIT isDone();
 }
+void Timer::cancel()
+{
+    const static QString cancelEvent = QStringLiteral("cancel");
+    const static QString cancelTitle = QStringLiteral("Timer Canceled");
+    const static QString cancelText = QStringLiteral("The timer \"%1\" has been canceled\n%2 before it ended");
+    KNotification::event(cancelEvent, cancelTitle,
+                         cancelText.arg(name, Utilities::msecToTime(timer.remainingTime())),
+                         QString(), nullptr, KNotification::CloseOnTimeout, "krunner_timer");
+    timer.stop();
+    markAsDone();
+}
+

@@ -7,3 +7,13 @@ Name=KRunner Timer
 Name=Done
 Comment=Normal timer has finished
 Action=Popup
+
+[Event/cancel]
+Name=Cancel
+Comment=Timer has been canceled
+Action=Popup
+
+[Event/error]
+Name=Error
+Comment=Error message
+Action=Popup
