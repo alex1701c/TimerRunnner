@@ -1,5 +1,14 @@
 ## TimerRunner
 
+This plugin is stil in development.  
+TODO:
+- Support specific time for timer (currently only durations like 5 minutes are supported)
+- Support 24/12 hour formats
+- Make timers editable
+- Deb/Rpm build
+- Documentation
+- Publish on KRunner store
+
 This is a KRunner plugin written in C++ and Qt which uses the DBus API.
 It is based on a test class of the official KRunner project: https://github.com/KDE/krunner/blob/master/autotests/testremoterunner.h  
 For more information and the advantages of DBus visit: http://blog.davidedmundson.co.uk/blog/cross-process-runners/
