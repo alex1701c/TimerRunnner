@@ -11,6 +11,7 @@ Q_OBJECT
 
 public:
     explicit TimerRunner();
+    ~TimerRunner() override;
     QLatin1String triggerWord = QLatin1String("timer");
     QRegularExpression timerQueryRegex;
     QRegularExpression timerTimeQueryRegex;
@@ -21,6 +22,7 @@ public:
     const int defaultValue = 5;
     const QString  defaultUnit = QStringLiteral("min");
 
+    RemoteMatch getFallbackMatch();
     RemoteMatches displayTimers(const QString &searchTerm);
     RemoteMatch getDurationRemoteMatch(const QRegularExpressionMatch &match);
     RemoteMatch getTimeRemoteMatch(const QRegularExpressionMatch &match);
