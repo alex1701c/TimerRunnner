@@ -1,6 +1,7 @@
 #include "utilities.h"
 
 #include <QtCore>
+#include <KNotification>
 
 int Utilities::timeUnitToMSec(const QString &unit, int time)
 {
@@ -47,4 +48,10 @@ QString Utilities::msecToTime(int msec, bool recrusive)
     conversionCall((1000), "second", "seconds")
 
     return QString();
+}
+void Utilities::showErrorNotification(const QString &msg)
+{
+    KNotification::event(QStringLiteral("error"), msg,
+                         QString(), QString(), nullptr,
+                         KNotification::CloseOnTimeout, "krunner_timer");
 }

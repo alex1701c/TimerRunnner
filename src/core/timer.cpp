@@ -15,7 +15,11 @@ void Timer::timerFinished()
     //const static QString defaultTitle = QStringLiteral("Timer finished!");
     const static QString defaultEvent = QStringLiteral("done");
     const static QString remindLater = QStringLiteral("Remind me in 5 minutes");
-    auto *notification = KNotification::event(defaultEvent, QString(), name, QString(), nullptr,
+    QString title = name;
+    if (name.isEmpty()) {
+        title = "The timer has finished!";
+    }
+    auto *notification = KNotification::event(defaultEvent, QString(), title, QString(), nullptr,
                                               KNotification::Persistent, "krunner_timer");
     notification->setActions({defaultEvent, remindLater});
 
@@ -23,6 +27,9 @@ void Timer::timerFinished()
     connect(notification, &KNotification::action2Activated, this, &Timer::remindLater);
 
     timer.stop();
+    if (!overdueTime.isValid()) {
+        overdueTime = QTime::currentTime();
+    }
 }
 
 void Timer::remindLater()
@@ -47,4 +54,3 @@ void Timer::cancel()
     timer.stop();
     markAsDone();
 }
-

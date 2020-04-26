@@ -2,12 +2,14 @@
 
 This plugin is stil in development.  
 TODO:
-- Support specific time for timer (currently only durations like 5 minutes are supported)
-- Support 24/12 hour formats
+- Support specific time for timer (currently only durations like 5 minutes are supported) - Done
+- Support 24/12 hour formats(am/pm) -Done
 - Make timers editable
 - Deb/Rpm build
 - Documentation
 - Publish on KRunner store
+
+If you have any other feature ideas feel free to let me know :-).
 
 This is a KRunner plugin written in C++ and Qt which uses the DBus API.
 It is based on a test class of the official KRunner project: https://github.com/KDE/krunner/blob/master/autotests/testremoterunner.h  

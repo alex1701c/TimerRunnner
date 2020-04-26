@@ -23,9 +23,11 @@ TimerRunner::TimerRunner()
     QDBusConnection::sessionBus().registerService(QStringLiteral("net.timerrunner2"));
     QDBusConnection::sessionBus().registerObject(QStringLiteral("/timerrunner"), this);
 
-    timerQueryRegex =
-        QRegularExpression(QStringLiteral("^timer (?<duration>\\d+)( ?(?<unit>[a-z]{1,3})( (?<msg>.+))?)?"));
+    timerQueryRegex = QRegularExpression("^timer (?<duration>\\d+)( ?(?<unit>[a-z]{1,3})( (?<msg>.+))?)?$");
+    timerTimeQueryRegex =
+        QRegularExpression("^timer (?<hours>\\d{1,2}):(?<minutes>\\d{2})(?<am_pm> ?am|pm)?( (?<name>.+))?$");
     timerQueryRegex.optimize();
+    timerTimeQueryRegex.optimize();
 }
 
 RemoteMatches TimerRunner::Match(const QString &searchTerm)
@@ -33,51 +35,18 @@ RemoteMatches TimerRunner::Match(const QString &searchTerm)
     if (!searchTerm.startsWith(triggerWord)) {
         return {};
     }
-    RemoteMatches ms;
-    // Overview
-    if (searchTerm == triggerWord) {
-        for (auto *timer: qAsConst(timers)) {
-            if (timer->done) {
-                continue;
-            }
-            RemoteMatch m;
-            m.id = KShell::joinArgs({QStringLiteral("cancel"), QString::number(reinterpret_cast<uintptr_t>(timer))});
-            const QString displayTime = Utilities::msecToTime(timer->timer.remainingTime());
-            const QString displayName = timer->name.isEmpty() ? QStringLiteral("Timer") : timer->name;
-            m.text = QStringLiteral("%1 %2 remaining").arg(timer->name, displayTime);
-            m.iconName = iconName;
-            m.type = Plasma::QueryMatch::ExactMatch;
-            m.relevance = 0.8;
-            ms.append(m);
-        }
-    }
-    const auto match = timerQueryRegex.match(searchTerm);
+    RemoteMatches ms = displayTimers(searchTerm);
+    const auto durationMatch = timerQueryRegex.match(searchTerm);
+    const auto timeMatch = timerTimeQueryRegex.match(searchTerm);
     // Default entry
-    if (!match.hasMatch()) {
+    if (durationMatch.hasMatch()) {
+        ms.append(getDurationRemoteMatch(durationMatch));
+    } else if (timeMatch.hasMatch()) {
+        ms.append(getTimeRemoteMatch(timeMatch));
+    } else {
         RemoteMatch m;
         m.id = "new-dialog";
-        m.text = QStringLiteral("New Timer");
-        m.iconName = iconName;
-        m.type = Plasma::QueryMatch::ExactMatch;
-        m.relevance = 0.8;
-        ms.append(m);
-    } else {
-        int time = match.captured(QStringLiteral("duration")).toInt();
-        QString unit = match.captured(QStringLiteral("unit"));
-        // Default value
-        if (time < 1 || unit.isEmpty()) {
-            time = defaultValue;
-            unit = defaultUnit;
-        }
-        const int timeMillis = Utilities::timeUnitToMSec(unit, time);
-        const QString msg = match.captured(QStringLiteral("msg"));
-        RemoteMatch m;
-        m.id = KShell::joinArgs({"new", QString::number(timeMillis), msg});
-        QString displayText = QStringLiteral("Create new timer %1%2").arg(QString::number(time), unit);
-        if (!msg.isEmpty()) {
-            displayText = displayText.append(QStringLiteral(" \"%1\"")).arg(msg);
-        }
-        m.text = displayText;
+        m.text = QStringLiteral("Create New Timer");
         m.iconName = iconName;
         m.type = Plasma::QueryMatch::ExactMatch;
         m.relevance = 0.8;
@@ -94,13 +63,16 @@ RemoteActions TimerRunner::Actions()
 
 void TimerRunner::Run(const QString &id, const QString &actionId)
 {
+    // action, isDuration=true, unit, time, name
+    // action, isDuration=false, hours, minutes, am/pm, name
     const QStringList args = KShell::splitArgs(id);
+    qWarning() << args;
     if (args.isEmpty()) {
         qWarning() << "List of arguments was empty";
         return;
     }
     if (actionId == QLatin1String("cancel")) {
-        const auto timerPointerID = args.at(1).toLong();
+        const auto timerPointerID = args.at(0).toLong();
         bool match = false;
         for (auto *timer: qAsConst(timers)) {
             if (reinterpret_cast<long>(timer) == timerPointerID) {
@@ -109,18 +81,46 @@ void TimerRunner::Run(const QString &id, const QString &actionId)
             }
         }
         if (!match) {
-            KNotification::event(QStringLiteral("error"), QStringLiteral("Failed to cancel timer"),
-                                 QString(), QString(), nullptr,
-                                 KNotification::CloseOnTimeout, "krunner_timer");
+            Utilities::showErrorNotification(QStringLiteral("Failed to cancel timer"));
         }
     } else if (args.first() == QLatin1String("new")) {
         auto *t = new Timer();
-        t->timer.start(args.at(1).toInt());
-        t->name = args.at(2);
+        // It is a duration match
+        if (args.at(1) == QLatin1String("true")) {
+            t->isDuration = true;
+            t->initialUnit = args.at(2);
+            t->initialValue = args.at(3).toInt();
+            t->timer.start(Utilities::timeUnitToMSec(t->initialUnit, t->initialValue));
+            t->name = args.at(2);
+        }
+            // Time match
+        else {
+            QTime time(args.at(2).toInt(), args.at(3).toInt());
+            if (time < QTime::currentTime()) {
+                Utilities::showErrorNotification(QStringLiteral("The given time is smaller that the current time!"));
+                return;
+            }
+            if (!args.at(4).isEmpty()) {
+                if (args.at(4) == QLatin1String("pm")) {
+                    if (time.hour() > 12) {
+                        const auto err = QStringLiteral("In the 12 hour format the value can't be greater than 12!");
+                        Utilities::showErrorNotification(err);
+                        return;
+                    }
+                    time = QTime(time.hour() + 12, time.minute());
+                }
+            }
+            t->isDuration = false;
+            t->initialTime = time;
+            t->initialTime = time;
+            t->timer.start(QTime::currentTime().msecsTo(time));
+            t->name = args.at(5);
+        }
         connect(t, &Timer::isDone, this, &TimerRunner::removeTimer);
         timers.append(t);
     }
 }
+
 void TimerRunner::removeTimer()
 {
     auto *timer = dynamic_cast<Timer *>(this->sender());
@@ -128,4 +128,77 @@ void TimerRunner::removeTimer()
         timers.removeOne(timer);
         delete timer;
     }
+}
+
+RemoteMatch TimerRunner::getDurationRemoteMatch(const QRegularExpressionMatch &match)
+{
+    RemoteMatch m;
+    int time = match.captured(QStringLiteral("duration")).toInt();
+    QString unit = match.captured(QStringLiteral("unit"));
+    // Default value
+    if (time < 1 || unit.isEmpty()) {
+        time = defaultValue;
+        unit = defaultUnit;
+    }
+    const QString msg = match.captured(QStringLiteral("msg"));
+    m.id = KShell::joinArgs({"new", "true", unit, QString::number(time), msg});
+    QString displayText = QStringLiteral("Create new timer %1%2").arg(QString::number(time), unit);
+    if (!msg.isEmpty()) {
+        displayText = displayText.append(QStringLiteral(" \"%1\"")).arg(msg);
+    }
+    m.text = displayText;
+    m.iconName = iconName;
+    m.type = Plasma::QueryMatch::ExactMatch;
+    m.relevance = 0.8;
+    return m;
+}
+
+RemoteMatch TimerRunner::getTimeRemoteMatch(const QRegularExpressionMatch &match)
+{
+    RemoteMatch m;
+    const QString hours = match.captured(QStringLiteral("hours"));
+    const QString minutes = match.captured(QStringLiteral("minutes"));
+    const QString amPM = match.captured(QStringLiteral("am_pm"));
+    const QString name = match.captured(QStringLiteral("name"));
+    QString displayText = QStringLiteral("Create new timer %1:%2%3").arg(hours, minutes, amPM);
+    if (!name.isEmpty()) {
+        displayText = displayText.append(QStringLiteral(" \"%1\"")).arg(name);
+    }
+    m.id = KShell::joinArgs({"new", "false", hours, minutes, amPM, name});
+    m.text = displayText;
+    m.iconName = iconName;
+    m.type = Plasma::QueryMatch::ExactMatch;
+    m.relevance = 0.8;
+    return m;
+}
+
+RemoteMatches TimerRunner::displayTimers(const QString &searchTerm)
+{
+    RemoteMatches ms;
+    // Overview
+    if (searchTerm == triggerWord) {
+        for (auto *timer: qAsConst(timers)) {
+            if (timer->done) {
+                continue;
+            }
+            RemoteMatch m;
+            m.id = KShell::joinArgs({QString::number(reinterpret_cast<uintptr_t>(timer))});
+            if (timer->isDuration) {
+                const QString displayTime = Utilities::msecToTime(timer->timer.remainingTime());
+                const QString displayName = timer->name.isEmpty() ? QStringLiteral("Timer") : timer->name;
+                m.text = QStringLiteral("%1 %2 remaining").arg(displayName, displayTime);
+            } else {
+                m.text = timer->name + ' ' + timer->initialTime.toString("hh:mm");
+            }
+            if(timer->overdueTime.isValid()){
+                const QString display = Utilities::msecToTime(timer->overdueTime.msecsTo(QTime::currentTime()));
+                m.text = m.text.append(QStringLiteral(" overdue for ") + display);
+            }
+            m.iconName = iconName;
+            m.type = Plasma::QueryMatch::ExactMatch;
+            m.relevance = 0.8;
+            ms.append(m);
+        }
+    }
+    return ms;
 }
